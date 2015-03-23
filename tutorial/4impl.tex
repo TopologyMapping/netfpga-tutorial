@@ -1,0 +1,49 @@
+\newpage
+\section{Implementação de um \emph{firewall} na NetFPGA}
+\label{sec:impl}
+
+Nesta seção apresentamos o \emph{firewall} que implementamos na NetFPGA.
+Apresentamos os detalhes de implementação e explicamos os fundamentos
+para que o leitor possa implementar seu próprios projetos.  Nosso
+\emph{firewall} tem várias simplificações para torná-lo mais didático.
+Em particular, o \emph{firewall} filtra apenas pacotes TCP e o único
+tipo de regra que suporta é filtragem por porta de destino.  Outra
+simplificação é que o \emph{firewall} suporta filtragem de até quatro
+portas.  As razões destas simplificações ficarão claras durante as
+discussões nesta seção.  Apesar das simplificações, esperamos que
+leitores sejam capazes de estender o \emph{firewall} apresentado
+utilizando o conteúdo do tutorial.
+
+Esta seção é dividida em cinco partes complementares.  Na
+\secstr~\ref{sec:impl.pkt} nós discutimos o processamento de pacotes na
+NetFPGA, na \secstr~\ref{sec:impl.mod} discutimos como pacotes podem ser
+modificados em trânsito, na \secstr~\ref{sec:impl.mem} mostramos como um
+módulo pode utilizar a memória SRAM e na \secstr~\ref{sec:impl.regs}
+mostramos como definir registradores e acessá-los através de programas
+de espaço de usuário.  Por fim, na \secstr~\ref{sec:impl.test}
+apresentamos o sistema de testes disponível no \emph{software} da
+NetFPGA.
+
+A maior parte do código apresentado neste material refere-se aos
+arquivos Verilog (\ssf{.v}) usados para simulação e síntese do
+\emph{hardware}.  A sintaxe para comentários em Verilog é idêntica à de
+C.\footnotemark{}  O \emph{software} da NetFPGA possui também
+\emph{scripts} Bash (\ssf{.sh}), Perl (\ssf{.pl}) e Python (\ssf{.py}),
+que adotam o caractere (\ssf{\#}) para comentários de linha.  Salvo
+quando indicado, iremos mostrar código retirado do módulo principal do
+nosso \emph{firewall}, em
+\ssf{netfpga/projects/firewall/src/firewall.v}.
+
+\footnotetext{Algumas dicas para programação em Verilog são apresentadas
+no apêndice A.}
+
+\input{4impl.zpkt}
+
+\input{4impl.zmod}
+
+\input{4impl.zmem}
+
+\input{4impl.zregs}
+
+\input{4impl.ztest}
+

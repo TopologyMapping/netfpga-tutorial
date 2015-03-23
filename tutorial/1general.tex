@@ -1,0 +1,59 @@
+\newpage
+\section{Introdução}
+
+Comutadores (\emph{switches}) e roteadores (\emph{routers}) atuais
+suportam uma quantidade limitada de arquiteturas e protocolos de rede.
+Mesmo para as arquiteturas e protocolos suportados, comutadores e
+roteadores permitem processamento limitado dos pacotes, como decremento
+do TTL, verificação do \emph{checksum}, balanceamento de carga e
+descarte.  Esta falta de flexibilidade dificulta a avaliação e
+implantação de mecanismos como OpenSketch~\cite{yu13opensketch}, de
+protocolos alternativos como Free-riding
+Multicast~\cite{ratnasamy06multicast} e de novas arquiteturas como
+XIA~\cite{han12xia}, CCN~\cite{jacobson09content}, ou
+SDN~\cite{casado09ethane}.  O caminho padrão para avaliação e
+implantação dessas soluções seria desenvolver novas placas de rede e
+processadores de pacotes específicos em \emph{hardware} (ASICs), o que é
+economicamente inviável.
+
+A NetFPGA é uma plataforma aberta que combina um FPGA
+(\emph{field-programmable gate array}, ou arranjo de portas programável
+em campo) memória (SRAM e DRAM) e processadores de sinais numa placa com
+quatro portas Ethernet de 1\,Gbps ou 10\,Gbps.  Desenvolvedores podem
+programar o FPGA e utilizar a memória para implementar novos mecanismos,
+protocolos e arquiteturas.  A NetFPGA permite modificação dos pacotes em
+trânsito, controle total sobre o encaminhamento e manutenção de estado.
+
+A NetFPGA é particularmente útil como uma alternativa de \emph{hardware}
+flexível e de baixo custo para avaliação de protótipos de pesquisa.
+NetFPGAs já foram utilizadas em vários projetos de pesquisa
+(e.g.,~\cite{yu13opensketch, Naous:2008:IOS:1477942.1477944,
+ghani10secure, thinh12fpga, antichi12open, lombardo12netfpga}).
+Comparada com a abordagem de implementar soluções em \emph{software}, a
+NetFPGA garante processamento e encaminhamento na taxa de transmissão
+das interfaces (sem sacrificar banda), baixa latência e não onera a CPU
+do computador.
+
+% A plataforma NetFPGA permite processamento genérico de pacotes de rede
+% em hardware.  A NetFPGA pode ser utilizada para desenvolvimento de
+% protótipos de pesquisa bem como implantação de novas funcionalidades.
+
+Neste texto, introduziremos o leitor à NetFPGA. Na
+\secstr~\ref{sec:example} iremos demonstrar nosso \emph{firewall} em
+funcionamento do ponto de vista do usuário e descreveremos como
+configurar o ambiente de desenvolvimento da NetFPGA.  Na
+\secstr~\ref{sec:arch} iremos apresentar as arquiteturas de
+\emph{hardware} e \emph{software} da NetFPGA, dando uma visão geral das
+funcionalidades e do desenvolvimento na NetFPGA.  Na
+\secstr~\ref{sec:impl} iremos demonstrar passo-a-passo a criação de um
+novo módulo na NetFPGA.  Usaremos como exemplo um \emph{firewall} para
+filtragem de pacotes em \emph{hardware} em função da porta de destino do
+protocolo TCP.  Nosso \emph{firewall} é um exemplo didático que cobre a
+maior parte dos conceitos necessários para desenvolvimento de um novo
+projeto, como utilização de memória bem como processamento e modificação
+de pacotes.  Por fim, na \secstr~\ref{sec:related} iremos discutir
+outros projetos utilizando a NetFPGA.  Acreditamos que os conceitos do
+minicurso irão permitir pesquisadores e programadores utilizarem a
+NetFPGA com módulos existentes bem como desenvolverem novos módulos para
+processamento de pacotes em \emph{hardware}.
+

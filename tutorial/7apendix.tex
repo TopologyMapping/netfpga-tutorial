@@ -1,0 +1,309 @@
+\newpage
+\section*{Apêndice A: Diretivas de programação}
+\label{sec.impl.apendice}
+
+Neste material adotamos algumas convenções para facilitar o
+entendimento, listadas a seguir. Alguns dos exemplos citados são
+recomendações de boas técnicas comuns em linguagens de programação,
+enquanto outras são necessárias para que o hardware resultante alcance o
+comportamento desejado do projeto.\footnote{As recomendações foram
+extraídas e adaptadas de
+\sssf{http://www.xilinx.com/itp/xilinx10/books/docs/sim/sim.pdf} e
+\sssf{https://github.com/NetFPGA/netfpga/wiki/VerilogCodingGuidelines}.}
+
+\begin{itemize}
+
+\item Use constantes e parâmetros para conferir legibilidade ao código.
+Defina constantes em letra \ssf{MAIÚSCULA}.
+
+\item Trechos do código que fazem asserções, monitoram ou imprimem
+valores de variáveis para teste do projeto devem estar posicionadas
+entre as diretivas \ssf{synthesis translate\_off} e \ssf{synthesis
+translate\_on}. Estes trechos são executados na simulação, mas são
+ignorados pelo sintetizador na criação do \emph{bitfile} do projeto.
+
+\item Em circuitos sequenciais utilize somente atribuições não-blocantes
+(\ssf{<=}) dessa forma todas as atribuições dentro do bloco (geralmente
+\ssf{always}) são avaliadas primeiro e depois realizadas na simulação e
+permitem ao sintetizador inferir o circuito síncrono. No exemplo a
+seguir todas as atribuições são sincronizadas com o sinal de relógio e
+recebem os valores anteriores dos sinais, ou seja, a sequência não
+importa:
+
+\begin{verilogcode}
+always @(posedge clk) begin
+    B <= A;
+    C <= B;
+    D <= C;
+end
+\end{verilogcode}
+
+\item Em circuitos combinacionais certifique-se de preencher a lista de
+sensibilidade com todas as variáveis de interesse ou usar \ssf{always
+@(*)}. Nesses circuitos qualquer alteração em alguma das variáveis na
+lista forçam a reexecução do bloco (em geral \ssf{always} ou
+\ssf{assign}) imediatamente. Certifique-se também de somente utilizar
+atribuições blocantes (\ssf{=}) para que o sintetizador infira um
+circuito assíncrono. O parâmetro \ssf{@(*)} é um recurso do Verilog que
+preenche automaticamente a lista de sensibilidade com todos os valores
+atribuídos dentro do bloco. No exemplo a seguir, as variáveis B, C e D
+recebem o valor de A:
+
+\begin{verilogcode}
+always @(*) begin
+    B = A;
+    C = B;
+    D = C;
+end
+\end{verilogcode}
+
+\item Atribua todas as variáveis em todos os estados possíveis do seu
+projeto. Este erro ocorre geralmente em expressões condicionais \ssf{if}
+sem a cláusula \ssf{else} ou blocos \ssf{case}. No exemplo abaixo,
+\ssf{cnt\_nxt} recebe o valor atual de \ssf{cnt} por padrão, para evitar
+que ele deixe de ser atribuído se algum estado não requerer sua
+atualização, e \ssf{state\_nxt} é atribuído em todos os estados. 
+
+\item Em lógicas de controle é recomendado criar circuitos
+combinatoriais que recebam os valores do próximo estado. Os valores do
+próximo estado devem ser guardados em registradores em circuitos
+síncronos com a borda do relógio:
+
+\begin{verilogcode}
+always @(*) begin
+    cnt_nxt = cnt;  
+    case(state)
+        INCREMENTA: begin 
+            if(cnt == 99)
+                state_nxt = RESETA;
+            else begin
+                cnt_nxt = cnt+'h1;
+                state_nxt = INCREMENTA;
+        end    
+        RESETA: begin 
+            cnt_nxt = 'h0;
+            state_nxt = INCREMENTA;
+        end
+        DEFAULT: begin
+            state_nxt = RESETA;
+        end
+    endcase
+end
+
+always @(posedge clk) begin
+    if(reset) begin
+        cnt <= 0;
+        state <= INCREMENTA;
+    end
+    else begin
+        cnt <= cnt_nxt;
+        state <= state_nxt;
+    end
+end
+\end{verilogcode}
+%\end{listing}
+
+Nesse exemplo, o circuito combinacional calcula os valores de
+\ssf{state} e \ssf{cnt} que serão atualizados na próxima borda de subida
+do sinal do relógio pelo circuito sequencial.
+
+\item Não utilize atribuições com atrasos pois são normalmente ignoradas
+pelas ferramentas de síntese, o que pode resultar num comportamento
+inesperado do projeto.
+
+\begin{verilogcode}
+assign #10 Q = 0; // do not use
+\end{verilogcode}
+
+\item Utilize blocos \ssf{generate} para gerar várias instâncias de
+módulos ou blocos de código. Na \secstr~\ref{sec:impl.mem} utilizamos
+\ssf{generate} para criar o vetor com os bits de paridade dos dados a
+serem gravados na memória;
+
+\item Outras dicas podem ser encontradas nas páginas Web mencionadas e
+livros especializados.
+
+\end{itemize}
+
+
+
+
+
+\begin{comment}
+\mr{movido da introdução}
+\pg{O código abaixo escreve zeros em todos os endereços da memoria}
+\begin{verbatim}
+module reseta_sram #(
+		parameter SRAM_DATA_WIDTH = 72,
+		parameter SRAM_ADDR_WIDTH = 19
+)
+(
+    output reg [SRAM_DATA_WIDTH-1:0] 	sram_data,
+    output reg [SRAM_ADDR_WIDTH-1:0] 	sram_addr,
+    output reg [7:0] 					sram_bw,
+    output reg 							sram_we,
+    output reg 							sram_tri_en,
+	input  				    			clk,
+	input								reset
+    );
+
+	reg									sram_tri_en_1, sram_tri_en_2;
+	reg	[SRAM_DATA_WIDTH-1:0]	sram_data_1, sram_data_2;
+	   
+always @(posedge clk) begin
+    if(reset) begin
+        sram_addr <= 'h0;
+        sram_data_2 <= 'h0;
+        sram_bw <= 'h00; 
+        sram_we <= 1'b0;
+        sram_tri_en_2 = 1'b1;
+    end
+    else if(sram_addr < {SRAM_ADDR_WIDTH{1'b1}}) begin
+        sram_addr <= sram_addr+'b1;
+        sram_data_2 <= 'h0;
+	    sram_bw <= 8'h00;		  
+        sram_we <= 1'b0; 
+        sram_tri_en_2 = 1'b1;
+    end
+    else begin
+        sram_bw <= 'hff; 
+        sram_we <= 1'b1; 
+        sram_tri_en <= 1'b0; 
+    end
+    //estágio 1 do pipeline de escrita
+    sram_tri_en_1 <= sram_tri_en_2;
+    sram_tri_en <= sram_tri_en_1;
+    //estágio 2 do pipeline de escrita
+    sram_data_1 <= sram_data_2;
+    sram_data <= sram_data_1;
+end
+endmodule
+
+\end{verbatim}
+
+Um arquivo de testes é necessário para visualizar o correto funcionamento:
+\begin{verbatim}
+module uut_reseta_sram #(
+
+    parameter 	PERIOD = 10,
+	parameter	SRAM_DATA_WIDTH = 72,
+	parameter	SRAM_ADDR_WIDTH = 5
+);
+	// Inputs
+	reg clk;
+	reg reset;
+
+	// Outputs
+	wire [SRAM_DATA_WIDTH-1:0] 	sram_data;
+	wire [SRAM_ADDR_WIDTH-1:0] 	sram_addr;
+	wire [7:0] 							sram_bw;
+	wire 									sram_we;
+	wire 									sram_tri_en;
+	
+	reg [SRAM_DATA_WIDTH-1:0]		memoria [0:(1<<SRAM_ADDR_WIDTH)-1];
+	integer 		idx;
+
+	// Instantiate the Unit Under Test (UUT)
+	reseta_sram  #(
+	    .SRAM_DATA_WIDTH(SRAM_DATA_WIDTH),
+	    .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH)
+    ) uut (
+        .sram_data(sram_data),
+        .sram_addr(sram_addr),
+        .sram_bw(sram_bw),
+        .sram_we(sram_we), 
+        .sram_tri_en(sram_tri_en),
+        .clk(clk),
+        .reset(reset)
+    );
+
+	initial begin
+        $dumpfile("sram.vcd");
+        for(idx=0;idx<(1<<SRAM_ADDR_WIDTH);idx=idx+1)
+            $dumpvars(0,memoria[idx]);
+        $dumpvars(0,uut_reseta_sram);
+        clk = 0;
+        reset = 0;
+        #5 reset = 1;
+        #30 reset = 0;
+        #1000 $finish;
+    end
+
+    always begin
+        clk = 1'b0;
+        #(PERIOD/2) clk = 1'b1;
+        #(PERIOD/2);
+    end  
+	
+	always @(*) begin
+        if(!sram_we && sram_tri_en) begin
+            if(sram_bw[0])
+                memoria[sram_addr][8:0] <= memoria[sram_addr][8:0];
+            else	
+                memoria[sram_addr][8:0] <= sram_data[8:0];
+            if(sram_bw[1])
+                memoria[sram_addr][17:9] <= memoria[sram_addr][17:9];
+            else
+                memoria[sram_addr][17:9] <= sram_data[17:9];
+            if(sram_bw[2])
+                memoria[sram_addr][26:18] <= memoria[sram_addr][26:18];
+            else
+                memoria[sram_addr][26:18] <= sram_data[26:18];
+            if(sram_bw[3])
+                memoria[sram_addr][35:27] <= memoria[sram_addr][35:27];
+            else
+                memoria[sram_addr][35:27] <= sram_data[35:27];
+            if(sram_bw[4])
+                memoria[sram_addr][44:36] <= memoria[sram_addr][44:36];
+            else
+                memoria[sram_addr][44:36] <= sram_data[44:36];
+            if(sram_bw[5])
+                memoria[sram_addr][53:45] <= memoria[sram_addr][53:45];
+            else
+                memoria[sram_addr][53:45] <= sram_data[53:45];
+            if(sram_bw[6])
+                memoria[sram_addr][63:54] <= memoria[sram_addr][63:54];
+            else
+                memoria[sram_addr][63:54] <= sram_data[63:54];
+            if(sram_bw[7])
+                memoria[sram_addr][71:63] <= memoria[sram_addr][71:63];
+            else
+                memoria[sram_addr][71:63] <= sram_data[71:63];				
+        end
+    end
+endmodule
+\end{verbatim}
+
+
+\pg{O arquivo de testes instancia o módulo para limpar a SRAM e demonstra o resultado da escrita, além de permitir a visualização em forma de onda das mudanças do conteúdo da memória. Essa simulação pode ser gerada, por exemplo, através das ferramentas Icarus Verilog e GTK-Wave que podem ser instaladas pelo yum através de:}
+
+\begin{verbnobox}
+sudo yum install iverilog
+sudo yum install gtkwave
+\end{verbnobox}
+
+O comando a seguir invoca o compilador e gera um arquivo binário para ser executado pelo simulador:
+\begin{verbnobox}
+iverilog uut_reseta_sram reseta_sram -o srambin
+\end{verbnobox}
+
+O simulador gerará um arquivo de saída de nome sram.vcd, conforme definido no comando \$dumpfile:
+
+\begin{verbnobox}
+vvp srambin
+\end{verbnobox}
+
+Você verá uma mensagem indicando que o arquivo com as formas de onda foi criado:
+
+\begin{verbnobox}
+VCD info: dumpfile sram.vcd opened for output.
+\end{verbnobox}
+
+Agora invocamos o gtkwave para ler o arquivo gerado com o comportamento das variáveis:
+
+\begin{verbnobox}
+gtkwave sram.vcd
+\end{verbnobox}
+
+A simulação do projeto em formas de ondas é útil para identificarmos erros no comportamento em módulos isolados ou em conjuntos de módulos que possam ser encapsulados numa interface bem definida, entretanto esta tarefa não é trivial quando o projeto é constituído de dezenas de módulos. A NetFPGA possui enfoque em testes de regressão \pg{citar pagina que explica os testes de regressao}. Ela oferece funcionalidades que permitem testes extensivos sobre o projeto. %, o que normalmente não é trivial para ser feito através das formas de onda devido à dificuldade em rastrear as variáveis internas de todos os módulos instanciados no projeto, ou mesmo de se descrever o comportamento do projeto final a partir delas.
+\end{comment}

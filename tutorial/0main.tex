@@ -1,0 +1,101 @@
+\documentclass{SBCbookchapter}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\renewcommand*\ttdefault{txtt}
+
+\usepackage[brazilian, american]{babel}
+
+% \usepackage{array}
+% \usepackage{ifpdf}
+% \usepackage{subfigure}
+% \usepackage{color}
+% \usepackage{framed}
+% \usepackage{hyperref}
+
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{comment}
+
+\usepackage{verbatimbox}
+\usepackage{minted}
+\newminted{verilog}{linenos}
+
+% \usepackage{tikz}
+% \usetikzlibrary{shapes.callouts}
+% \usetikzlibrary{shadows}
+
+\newcommand{\ssf}[1]{\texttt{\small{}#1}}
+\newcommand{\sssf}[1]{\texttt{\scriptsize{}#1}}
+
+\newcommand{\figstr}{figura}
+\newcommand{\Figstr}{Figura}
+\newcommand{\tabstr}{tabela}
+\newcommand{\Tabstr}{Tabela}
+\newcommand{\secstr}{seção}
+\newcommand{\Secstr}{Seção}
+
+\pagestyle{plain}
+\pagenumbering{arabic}
+
+\hyphenation{Net-FPGA}
+
+\author{\vspace{2mm}Pablo Goulart, Ítalo Cunha, Marcos A. M. Vieira (UFMG)\newline
+Cesar Marcondes, Ricardo Menotti (UFSCar)}
+
+\title{NetFPGA: Processamento de Pacotes em \emph{Hardware}}
+
+\begin{document}
+
+\maketitle
+
+\selectlanguage{american}
+
+\begin{abstract}
+
+The NetFPGA platform allows general-purpose network packet processing in hardware. NetFPGAs can be used to develop research prototypes and deploy new network functionality. This tutorial will present NetFPGA's hardware architecture, its programming interface, and possible applications. We will demonstrate all steps in the implementation and deployment of a hardware firewall to filter packets depending on the TCP destination port.  The concepts covered in this tutorial will help researchers and programmers use the NetFPGA with any of its available modules as well as develop new hardware packet processing modules.
+
+\end{abstract}
+
+\selectlanguage{brazilian}
+
+\begin{resumo}
+
+A plataforma NetFPGA permite processamento genérico de pacotes de rede
+em \emph{hardware}. A NetFPGA pode ser utilizada para desenvolvimento de
+protótipos de pesquisa bem como implantação de novas funcionalidades.
+Este minicurso apresentará a arquitetura de hardware da NetFPGA, a
+interface de programação e possíveis aplicações da NetFPGA. Iremos
+demonstrar passo-a-passo a implementação de um \emph{firewall} para
+filtragem de pacotes em hardware em função da porta de destino do
+protocolo TCP.  Os conceitos do minicurso irão permitir pesquisadores e
+programadores utilizarem a NetFPGA com módulos existentes, bem como
+desenvolverem novos módulos para processamento de pacotes em hardware.
+
+\end{resumo}
+
+% \printglossary[type=\acronymtype]
+% \renewcommand*{\glspostdescription}{}
+% Delete the trailing point if using package glossaries with
+% nonumberlist as arguments
+%\printglossary[style=super,nonumberlist,type=\acronymtype,title=Acrônimos]
+
+\input{1general}
+
+\input{2example}
+
+\input{3arch}
+
+\input{4impl}
+
+\input{5related}
+
+\input{6conclusion}
+
+\input{7apendix}
+
+\newpage
+\bibliographystyle{sbc}
+\bibliography{ref}
+
+\end{document}
