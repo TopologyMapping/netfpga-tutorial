@@ -84,7 +84,7 @@
 %=======================================================================
 \renewcommand{\maketitle}{%
 	\noindent%
-	{\chapnamesize\textbf{\chaptername}\\[1ex]}
+	{\chapnamesize\textbf{Cap\'{i}tulo}\\[1ex]}
 	{\chapnumsize\textbf{\thechapter}\\[2ex]}
 	{\titlesize\textbf{\@title}\\[4ex]}
 	{\authorsize\@author\\[4ex]}
