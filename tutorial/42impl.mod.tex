@@ -1,17 +1,18 @@
 \subsection{Modificação de pacotes em trânsito}
 \label{sec:impl.mod}
 
-Uma das funcionalidades da NetFPGA é a capacidade de modificar pacotes
-em trânsito.  Iremos ilustrar essa funcionalidade decrementando o tempo
-de vida (\emph{time to live}, TTL) do pacote.  Iremos também recalcular
-o \emph{checksum} do pacote.  Para tanto vamos estender o código
-apresentado na subseção anterior.
+Uma das funcionalidades da NetFPGA é a capacidade de modificar
+pacotes em trânsito.  Iremos ilustrar essa funcionalidade
+decrementando o tempo de vida (\emph{time to live}, TTL) do pacote.
+Iremos também recalcular o \emph{checksum} do pacote.  Para tanto
+vamos estender o código apresentado na subseção anterior.
 
 O tempo de vida do pacote é transmitido na terceira palavra
-(figura~\ref{tab:impl.state.pktwords}).  Nosso \emph{firewall} processa
-a terceira palavra do pacote no quarto estado (\ssf{WORD4\_ADDR\_TTL}).
-Para decrementar o tempo de vida, iremos modificar o dado do pacote
-antes de inseri-lo na fila de saída, como segue:
+(figura~\ref{tab:impl.state.pktwords}).  Nosso \emph{firewall}
+processa a terceira palavra do pacote no quarto estado
+(\ssf{WORD4\_ADDR\_TTL}).  Para decrementar o tempo de vida, iremos
+modificar o dado do pacote antes de inseri-lo na fila de saída, como
+segue:
 
 \begin{verilogcode}
       WORD3_CHECK_TCP_TTL: begin
@@ -34,18 +35,19 @@ antes de inseri-lo na fila de saída, como segue:
 
 De forma similar, precisamos atualizar o \emph{checksum} do pacote
 devido ao decremento do tempo de vida.  Como o \emph{checksum} do
-protocolo IP é simplesmente uma soma, podemos atualizá-lo simplesmente
-somando o que foi subtraído devido ao decremento do tempo de
-vida.\footnotemark{} No código abaixo, \ssf{chksum} possui 17~bits para
-conseguirmos somar o \emph{carry out} em \ssf{\tt chksum\_cout}, que
-possui 16~bits.
+protocolo IP é simplesmente uma soma, podemos atualizá-lo
+simplesmente somando o que foi subtraído devido ao decremento do
+tempo de vida.\footnotemark{} No código abaixo, \ssf{chksum} possui
+17~bits para conseguirmos somar o \emph{carry out} em \ssf{\tt
+chksum\_cout}, que possui 16~bits.
 
-\footnotetext{O cálculo do \emph{checksum} do protocolo IP é detalhado
-no RFC1071.  Ele depende do valor da soma das palavras de 2~bytes dos
-campos do cabeçalho usando complemento de um.  Como o tempo de vida tem
-apenas 1~byte e está alinhado com o byte mais significativo da palavra
-de 2~bytes que o contém, nós incrementamos o byte mais significativo do
-\emph{checksum}, somando \sssf{0x0100}, para compensar.}
+\footnotetext{O cálculo do \emph{checksum} do protocolo IP é
+detalhado no RFC1071.  Ele depende do valor da soma das palavras de
+2~bytes dos campos do cabeçalho usando complemento de um.  Como o
+tempo de vida tem apenas 1~byte e está alinhado com o byte mais
+significativo da palavra de 2~bytes que o contém, nós incrementamos
+o byte mais significativo do \emph{checksum}, somando \sssf{0x0100},
+para compensar.}
 
 \begin{verilogcode}
       assign chksum = {0, in_fifo_data[63:48]} + 16'h0100;

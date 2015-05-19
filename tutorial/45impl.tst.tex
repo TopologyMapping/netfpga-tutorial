@@ -1,0 +1,97 @@
+\subsection{Sistema de testes}
+\label{sec:impl.test}
+
+O \emph{software} da NetFPGA tem um \emph{framework} que projetos
+podem utilizar para facilitar e automatizar o desenvolvimento e
+execução de testes.
+
+O programa \ssf{nf\_test.py} executa testes armazenados dentro do
+subdiretório \ssf{test} no diretório do projeto apontado pela
+variável de ambiente \ssf{NF\_DESIGN\_DIR}. O nome de cada teste
+deve seguir um formato específico, indicando se é um teste de
+simulação (\ssf{sim}), um teste do \emph{hardware} sintetizado
+(\ssf{hw}) ou ambos (\ssf{both}); o componente sendo testado
+(\ssf{major}); e o teste específico (\ssf{minor}).  Por exemplo, o
+comando abaixo irá executar o teste em
+\ssf{projects/firewall/test/sim\_firewall\_tcp}.
+
+\begin{minted}{bash}
+# inside the NetFPGA root directory
+export NF_DESIGN_DIR=$(pwd)/projects/firewall
+bin/nf_test.py --isim --major firewall --minor tcp sim
+\end{minted}
+
+O \ssf{nf\_test.py} chama o \emph{script} \ssf{run.py} dentro do
+diretório do teste.  Os \emph{scripts} \ssf{run.py} podem utilizar
+funções da biblioteca de testes da NetFPGA.\footnote{As bibliotecas
+do \emph{framework} de testes ficam no diretório
+\sssf{lib/python/NFTest}.  As funções relativas a manipulação de
+pacotes estão em \sssf{PacketLib.py} e as funções relativas à
+comunicação via interface PCI estão em \sssf{NFTestLib.py}.} A
+biblioteca possui funções que permitem construir pacotes de rede
+usando a biblioteca Scapy\footnote{Scapy, disponível em
+\sssf{www.secdev.org/projects/scapy/}.} disponível no Python.  A
+biblioteca injeta os pacotes gerados interfaceando com o simulador
+ou com o \emph{hardware} dependendo do tipo de teste sendo
+realizado.  A biblioteca também permite verificar se pacotes foram
+transmitidos ou não.  No teste \ssf{sim\_firewall\_tcp} criamos
+pacotes TCP com diferentes portas de destino e depois verificamos se
+os pacotes cujas portas não estão bloqueadas foram encaminhados.
+Caso pacotes sejam erroneamente encaminhados ou descartados, o teste
+resultará em erro.
+
+\begin{minted}{python}
+   # projects/firewall/test/sim_firewall_tcp/run.py
+   eth_hdr = scapy.Ether(dst=DA, src=SA)
+   ip_hdr = scapy.IP(dst=DST, src=SRC)
+   tcp_hdr = scapy.TCP(dport=random.choice(POSSIBLE_PORTS), sport=SPORT)
+   ...
+   pkt = eth_hdr/ip_hdr/tcp_hdr/payload
+   nftest_send_phy('nf2c0', pkt)
+   if(pkt.dport not in BLOCKED_PORTS):
+      ...
+      nftest_expect_dma('nf2c0', pkt)
+\end{minted}
+
+A biblioteca também possui funções que permitem escrever e ler
+valores de registradores e da memória SRAM.  Para tornar o teste
+\ssf{sim\_firewall\_tcp} interessante, utilizamos as funções da
+biblioteca para configurar as portas que devem ser filtradas, bem
+como verificar se a configuração foi escrita no registrador.  Note
+que o módulo Python \ssf{reg\_defines} é gerado pelo
+\ssf{nf\_register\_gen}.
+
+\begin{minted}{python}
+# projects/firewall/test/sim_firewall_tcp/run.py
+nftest_regwrite(reg_defines.FIREWALL_DPORT0_REG(),
+                BLOCKED_PORTS[0])
+nftest_regread_expect(reg_defines.FIREWALL_DPORT0_REG(),
+                      BLOCKED_PORTS[0])
+\end{minted}
+
+Podemos também verificar se as portas foram escritas na primeira
+linha de memória de onde nossa máquina de estados lê as portas que
+devem ser bloqueadas.  Adicionamos um pequeno atraso no
+\emph{script} de teste para dar tempo para os dados serem gravados
+na memória.  A manipulação dos bits é necessária devido ao formato
+no qual as portas são gravadas na memória SRAM.
+
+\begin{minted}{python}
+simReg.regDelay(1000)
+nftest_regread_expect(reg_defines.SRAM_BASE_ADDR(),
+                      BLOCKED_PORTS[2]<<16 | BLOCKED_PORTS[3])
+\end{minted}
+
+A saída do \ssf{nf\_test.py} contém o tempo de simulação e as
+mensagens escritas.  Estas mensagens podem ser geradas de dentro do
+código Verilog usando as diretivas \ssf{\$display}.  As funções
+disponibilizadas pelo sistema de testes em Python geram mensagens
+indicando qual operação será realizada e o seu resultado. Por
+exemplo, as asserções de leitura sobre endereços definidos nos
+arquivos de cabeçalho normalmente produzem a mensagem \emph{``Good:
+PCI read of addr X returned data Y as expected''} quando o resultado
+está correto. O final da saída indica se todas as verificações do
+teste passaram através da mensagem \emph{``Test X passed!''} e
+vice-versa.
+
+

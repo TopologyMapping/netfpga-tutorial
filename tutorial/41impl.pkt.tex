@@ -206,39 +206,26 @@ manter os valores nos registradores, inicializamos as linhas \ssf{next}
 com o valor atual dos registradores e modificamos o valor das linhas
 \ssf{next} em estados específicos quando necessário.
 
-% \begin{minted}{verilog}
-%       state_next = state;
-%       save_1st_word_next = save_1st_word;
-%       save_2nd_word_next = save_2nd_word;
-%       save_3rd_word_next = save_3rd_word;
-%       save_4th_word_next = save_4th_word;
-%       dst_port_next = dst_port;
-%       rd_0_req_next = 0;
-%       num_TCP = num_TCP_next;
-%       rd_0_addr_next = rd_0_addr;
-%       drop_next = drop;
-%       word_saved_next = word_saved;
-% \end{minted}
-
 \subsubsection*{Primeiro estado: esperando o início de pacotes}
 
 O primeiro estado da nossa máquina de estados, \ssf{WAIT\_PACKET},
-simplesmente espera o início do recebimento de um pacote, isto é, espera
-as linhas de controle serem zeradas.  A implementação do primeiro
-estado, mostrada abaixo, primeiro verifica se existe pacote a processar
-e se o próximo módulo está pronto para receber pacotes verificando
-\ssf{in\_fifo\_empty} e \ssf{out\_rdy}, respectivamente.  Se não há dado
-a processar ou se o próximo módulo não está pronto para receber,
-continuamos neste estado sem avançar as filas de entrada e saída (linha
-12).  Se há dado a processar e o próximo módulo está pronto para
-recebê-lo, nossa máquina de estados avança a fila ligando o sinal
-\ssf{in\_fifo\_rd\_en} e grava os dados na fila de saída ligando
-\ssf{out\_fifo\_wr}.  Se os bits de controle \ssf{in\_fifo\_ctrl} não
-estiverem zerados, significa que ainda estamos recebendo metadados e o
-início do pacote ainda não chegou.  Quando os bits de controle estiverem
-zerados significa que acabamos de receber a primeira palavra de dados do
-pacote (que contém o endereço MAC da origem,
-tabela~\ref{tab:impl.state.pktwords}) e passamos para o segundo estado.
+simplesmente espera o início do recebimento de um pacote, isto é,
+espera as linhas de controle serem zeradas.  A implementação do
+primeiro estado, mostrada abaixo, primeiro verifica se existe pacote
+a processar e se o próximo módulo está pronto para receber pacotes
+verificando \ssf{in\_fifo\_empty} e \ssf{out\_rdy}, respectivamente.
+Se não há dado a processar ou se o próximo módulo não está pronto
+para receber, continuamos neste estado sem avançar as filas de
+entrada e saída (linha 12).  Se há dado a processar e o próximo
+módulo está pronto para recebê-lo, nossa máquina de estados avança a
+fila ligando o sinal \ssf{in\_fifo\_rd\_en} e grava os dados na fila
+de saída ligando \ssf{out\_fifo\_wr}.  Se os bits de controle
+\ssf{in\_fifo\_ctrl} não estiverem zerados, significa que ainda
+estamos recebendo metadados e o início do pacote ainda não chegou.
+Quando os bits de controle estiverem zerados significa que acabamos
+de receber a primeira palavra de dados do pacote (que contém o
+endereço MAC da origem, tabela~\ref{tab:impl.state.pktwords}) e
+passamos para o segundo estado.
 
 \begin{verilogcode}
   WAIT_PACKET: begin
@@ -260,18 +247,18 @@ tabela~\ref{tab:impl.state.pktwords}) e passamos para o segundo estado.
 \subsubsection*{Segundo estado: verificação do protocolo de rede}
 
 O segundo estado nosso \emph{firewall} processa a segunda palavra do
-pacote e verifica se o pacote é um pacote IPv4.  Para isso verificamos
-se o tipo do cabeçalho Ethernet (EtherType) é \ssf{0x0800}, que indica
-um pacote IP, e se a versão do protocolo IP é \ssf{4}.\footnotemark{}
-Em caso positivo, prosseguimos para o próximo estado para verificar se o
-pacote é um pacote TCP.  Caso o pacote não seja um pacote IPv4 ele
-deverá ser encaminhado pela rede sem ser filtrado.  Para encaminharmos o
-pacote pulamos para o oitavo estado, \ssf{EMPTY\_OUT\_FIFO}, descrito
-abaixo.
+pacote e verifica se o pacote é um pacote IPv4.  Para isso
+verificamos se o tipo do cabeçalho Ethernet (EtherType) é
+\ssf{0x0800}, que indica um pacote IP, e se a versão do protocolo IP
+é \ssf{4}.\footnotemark{} Em caso positivo, prosseguimos para o
+próximo estado para verificar se o pacote é um pacote TCP.  Caso o
+pacote não seja um pacote IPv4 ele deverá ser encaminhado pela rede
+sem ser filtrado.  Para encaminharmos o pacote pulamos para o oitavo
+estado, \ssf{EMPTY\_OUT\_FIFO}, descrito abaixo.
 
-\footnotetext{Note que nosso \emph{firewall} não suporta VLANs (802.1Q).
-Para tal seria necessário considerar o caso onde o EtherType é
-\ssf{0x8100}.}
+\footnotetext{Note que nosso \emph{firewall} não suporta VLANs
+(802.1Q).  Para tal seria necessário considerar o caso onde o
+EtherType é \ssf{0x8100}.}
 
 \begin{verilogcode}
   WORD2_CHECK_IPV4: begin
@@ -293,15 +280,15 @@ Para tal seria necessário considerar o caso onde o EtherType é
 
 \subsubsection*{Terceiro estado: verificação do protocolo de transporte}
 
-No terceiro estado inspecionamos o cabeçalho IP para ver se o valor do
-campo protocolo é \ssf{0x06}, que indica TCP.  Em caso negativo o pacote
-é aceito: pulamos para o estado \ssf{EMPTY\_OUT\_FIFO} para enviarmos as
-duas primeiras palavras mais metadados que foram armazenadas na fila de
-saída (linha 9).  Note que, em caso negativo, a fila de entrada fica
-bloqueada com a terceira palavra, que será transmitida após esvaziarmos
-a fila de saída no estado \ssf{EMPTY\_OUT\_FIFO}.  Em caso positivo,
-encaminhamos a terceira palavra para a fila de saída e passamos para o
-próximo estado.
+No terceiro estado inspecionamos o cabeçalho IP para ver se o valor
+do campo protocolo é \ssf{0x06}, que indica TCP.  Em caso negativo o
+pacote é aceito: pulamos para o estado \ssf{EMPTY\_OUT\_FIFO} para
+enviarmos as duas primeiras palavras mais metadados que foram
+armazenadas na fila de saída (linha 9).  Note que, em caso negativo,
+a fila de entrada fica bloqueada com a terceira palavra, que será
+transmitida após esvaziarmos a fila de saída no estado
+\ssf{EMPTY\_OUT\_FIFO}.  Em caso positivo, encaminhamos a terceira
+palavra para a fila de saída e passamos para o próximo estado.
 
 \begin{verilogcode}
   WORD3_CHECK_TCP_TTL: begin
@@ -321,9 +308,9 @@ próximo estado.
 
 \subsubsection*{Quarto estado: armazenamento dos endereços IP}
 
-O quarto estado do \emph{firewall} armazena os dados da quarta palavra
-do pacote temporariamente até verificarmos o número da porta de destino
-no protocolo TCP no próximo estado.
+O quarto estado do \emph{firewall} armazena os dados da quarta
+palavra do pacote temporariamente até verificarmos o número da porta
+de destino no protocolo TCP no próximo estado.
 
 \begin{verilogcode}
   WORD4_ADDR_CHKSUM: begin
@@ -340,10 +327,11 @@ no protocolo TCP no próximo estado.
 \subsubsection*{Quinto, sexto e sétimo estágios: verificando porta de
 destino}
 
-No quinto estado a fila de entrada contém a quinta palavra do pacote,
-que possui o número da porta de destino do protocolo TCP.  Nós mantemos
-as filas de entrada e saída travadas, armazenamos a porta de destino no
-registrador \ssf{dst\_port} e avançamos para o próximo estágio.
+No quinto estado a fila de entrada contém a quinta palavra do
+pacote, que possui o número da porta de destino do protocolo TCP.
+Nós mantemos as filas de entrada e saída travadas, armazenamos a
+porta de destino no registrador \ssf{dst\_port} e avançamos para o
+próximo estágio.
 
 \begin{verilogcode}
   WORD5_TCP_PORT: begin
@@ -359,12 +347,12 @@ registrador \ssf{dst\_port} e avançamos para o próximo estágio.
 
 No sexto estágio mantemos as filas de entrada e saída travadas e
 enviamos uma requisição de leitura da memória.  O endereço lido é
-\ssf{SRAM\_PORTS\_ADDR}, que é definido igual a zero (primeira linha da
-memória) e contém as portas de destino que estão bloqueadas.  Nós lemos
-as portas bloqueadas da memória para ilustrar o acesso à memória SRAM e
-porque as portas bloqueadas podem ser alteradas assincronamente pelo
-usuário.  Na seção~\ref{sec:impl.mem} iremos detalhar o acesso à
-memória.
+\ssf{SRAM\_PORTS\_ADDR}, que é definido igual a zero (primeira linha
+da memória) e contém as portas de destino que estão bloqueadas.  Nós
+lemos as portas bloqueadas da memória para ilustrar o acesso à
+memória SRAM e porque as portas bloqueadas podem ser alteradas
+assincronamente pelo usuário.  Na seção~\ref{sec:impl.mem} iremos
+detalhar o acesso à memória.
 
 \begin{verilogcode}
   CHECK_RULES: begin
@@ -375,14 +363,15 @@ memória.
 \end{verilogcode}
 
 Por último, o sétimo estágio espera a memória SRAM retornar os dados
-verificando o valor de \ssf{rd\_vld}.  Esta espera é necessária pois a
-SRAM demora alguns ciclos de relógio para retornar o dado requisitado.
-Uma versão otimizada do nosso \emph{firewall} poderia realizar a
-requisição de memória antes para evitar esta espera.  Se a porta de
-destino for uma das portas bloqueadas, ligamos o registrador \ssf{drop}.
-Independente da porta de destino passamos para o próximo estágio, onde a
-fila de saída será esvaziada e os dados transmitidos para o próximo
-módulo dependendo do valor do registrador \ssf{drop}.
+verificando o valor de \ssf{rd\_vld}.  Esta espera é necessária pois
+a SRAM demora alguns ciclos de relógio para retornar o dado
+requisitado.  Uma versão otimizada do nosso \emph{firewall} poderia
+realizar a requisição de memória antes para evitar esta espera.  Se
+a porta de destino for uma das portas bloqueadas, ligamos o
+registrador \ssf{drop}.  Independente da porta de destino passamos
+para o próximo estágio, onde a fila de saída será esvaziada e os
+dados transmitidos para o próximo módulo dependendo do valor do
+registrador \ssf{drop}.
 
 \begin{verilogcode}
       CHECK_PORTS: begin
@@ -406,14 +395,15 @@ temporariamente}
 
 O oitavo estágio é responsável por processar os metadados e dados do
 pacote armazenados temporariamente na fila de saída para o módulo
-seguinte do \emph{pipeline}.  A cada ciclo de relógio processamos uma
-palavra da fila de espera (linha 6).  Se o registrador \ssf{drop}
-estiver desligado, enviamos uma palavra da fila de espera para o próximo
-módulo (linha 7).  Se o registrador \ssf{drop} estiver ligado, retiramos
-os dados da fila sem repassá-los ao módulo seguinte, efetivamente
-descartando o pacote.  Quando a fila de espera estiver vazia pulamos
-para o último estado onde enviamos o restante do pacote (a partir da
-quinta palavra) para o próximo módulo diretamente da fila de entrada.
+seguinte do \emph{pipeline}.  A cada ciclo de relógio processamos
+uma palavra da fila de espera (linha 6).  Se o registrador
+\ssf{drop} estiver desligado, enviamos uma palavra da fila de espera
+para o próximo módulo (linha 7).  Se o registrador \ssf{drop}
+estiver ligado, retiramos os dados da fila sem repassá-los ao módulo
+seguinte, efetivamente descartando o pacote.  Quando a fila de
+espera estiver vazia pulamos para o último estado onde enviamos o
+restante do pacote (a partir da quinta palavra) para o próximo
+módulo diretamente da fila de entrada.
 
 \begin{verilogcode}
       EMPTY_OUT_FIFO: begin
@@ -431,16 +421,16 @@ quinta palavra) para o próximo módulo diretamente da fila de entrada.
 
 \subsubsection*{Nono estágio: processando o conteúdo do pacote}
 
-O nono e último estágio processa o resto do pacote a partir da fila de
-entrada.  Os dados retirados da fila de entrada são repassados para o
-próximo módulo dependendo do valor de \ssf{drop}.  Voltamos para o
-primeiro estado quando detectamos o início do próximo pacote.
-Detectamos o início do próximo pacote quando os bits de controle têm o
-valor \ssf{IO\_QUEUE\_STAGE\_NUM}, do metadado adicionado pelas filas de
-entrada quando o pacote é recebido na NetFPGA.  Note que assim que
-detectamos o início do próximo pacote travamos a fila de entrada para
-que a primeira palavra do pacote seja processada pelo primeiro estado do
-\emph{firewall}.
+O nono e último estágio processa o resto do pacote a partir da fila
+de entrada.  Os dados retirados da fila de entrada são repassados
+para o próximo módulo dependendo do valor de \ssf{drop}.  Voltamos
+para o primeiro estado quando detectamos o início do próximo pacote.
+Detectamos o início do próximo pacote quando os bits de controle têm
+o valor \ssf{IO\_QUEUE\_STAGE\_NUM}, do metadado adicionado pelas
+filas de entrada quando o pacote é recebido na NetFPGA.  Note que
+assim que detectamos o início do próximo pacote travamos a fila de
+entrada para que a primeira palavra do pacote seja processada pelo
+primeiro estado do \emph{firewall}.
 
 \begin{verilogcode}
       PAYLOAD: begin
