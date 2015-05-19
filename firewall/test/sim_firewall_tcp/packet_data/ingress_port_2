@@ -1,0 +1,8 @@
+//File packet_data/ingress_port_2 created Thu Jul 17 20:34:34 2014
+//
+//This is a data file intended to be read in by a Verilog simulation.
+//
+00000002 // BARRIER
+00000000 // Number of Packets
+00000002 // BARRIER
+00000000 // Number of Packets

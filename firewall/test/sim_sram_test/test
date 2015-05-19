@@ -1,0 +1,21 @@
+#!/bin/env python
+
+from NFTest import *
+
+phy2loop0 = ('../connections/conn', [])
+
+nftest_init(sim_loop = [], hw_config = [phy2loop0])
+nftest_start()
+#nftest_fpga_reset()
+
+#for i in range(20):
+   nftest_regwrite(((reg_defines.SRAM_BASE_ADDR()+(i<<2))),i)
+
+for i in range(20):
+   if nftest_regread_expect(((reg_defines.SRAM_BASE_ADDR()+(i<<2))),i):
+      print 'O valor esperado foi lido\n'
+   else:
+      print 'Error: O valor esperado nao foi lido\n'*/
+   #print "BASE: %x\n" %(reg_defines.SRAM_BASE_ADDR())
+
+nftest_finish()
