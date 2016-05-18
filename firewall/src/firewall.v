@@ -198,7 +198,7 @@ module firewall
       == `FIREWALL_BLOCK_ADDR;
    assign addr_good = reg_addr_out[`FIREWALL_REG_ADDR_WIDTH-1:0] >=
       `FIREWALL_DPORT1 && reg_addr_out[`FIREWALL_REG_ADDR_WIDTH] <= `FIREWALL_DPORT4;
-   assign chksum = {0,in_fifo_data[63:48]}+17'h100;
+   assign chksum = {1'b0,in_fifo_data[63:48]}+17'h100;
    assign chksum_cout = chksum[15:0]+{15'h0,chksum[16]};
 
    always @(*) begin
